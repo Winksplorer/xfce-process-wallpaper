@@ -3,29 +3,66 @@ WALLPAPER_PATH="$(pwd)/wallpaper.png"
 
 echo "Setting wallpaper..."
 
-if pgrep plasmashell >/dev/null; then
-  qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "var allDesktops = desktops();print (allDesktops);for (i=0;i<allDesktops.length;i++) {d = allDesktops[i];d.wallpaperPlugin = 'org.kde.image';d.currentConfigGroup = Array('Wallpaper', 'org.kde.image', 'General');d.writeConfig('Image', 'file://$(dirname ${WALLPAPER_PATH})/wc.png')}"
-  qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "var allDesktops = desktops();print (allDesktops);for (i=0;i<allDesktops.length;i++) {d = allDesktops[i];d.wallpaperPlugin = 'org.kde.image';d.currentConfigGroup = Array('Wallpaper', 'org.kde.image', 'General');d.writeConfig('Image', 'file://${WALLPAPER_PATH}')}"
-  PLASMASHELL_WORKED=true
-fi
+set_xfce_backdrop() {
+  image_path=$1
+  command=("xfconf-query" "-c" "xfce4-desktop" "-l")
 
-if command -v gsettings > /tmp/wallpaper.log
-then
-  gsettings set org.gnome.desktop.background picture-uri "file://$WALLPAPER_PATH"
-  GSETTINGS_WORKED=true
-fi
+  while true
+  do
+    output=$( "${command[@]}" 2>&1 )
+    success=$?
+    if [ $success -ne 0 ]; then
+      echo "Error fetching properties: $output"
+      return
+    fi
 
-if command -v feh > /tmp/wallpaper.log
-then
-  feh --bg-fill $WALLPAPER_PATH
-  FEH_WORKED=true
-fi
+    properties=($output)
+    target_properties=()
+    for property in ${properties[*]}
+    do
+      if [[ $property == /backdrop/* ]] && [[ $property == *last-image* ]]
+      then
+        target_properties+=( $property )
+      fi
+    done
 
-if [ [ $PLASMASHELL_WORKED ] || [ $GSETTINGS_WORKED ] || [ $FEH_WORKED ] ]
-then
-  echo "Wallpaper set successfully"
-else
-  echo "[ERROR] Unable to automatically set wallpaper on your system. Please set wallpaper.png as your desktop wallpaper manually."
-fi
+    if [ ${#target_properties[@]} -eq 0 ]
+    then
+      break
+    fi
+
+    for target_property in ${target_properties[*]}
+    do
+      command=("xfconf-query" "-c" "xfce4-desktop" "-p" $target_property "-s" $image_path)
+      output=$( "${command[@]}" 2>&1 )
+      success=$?
+      if [ $success -eq 0 ]; then
+        echo "Backdrop image set successfully!"
+      else
+        echo "Error setting backdrop image: $output"
+        continue
+      fi
+    done
+
+    output=$( "${command[@]}" 2>&1 )
+    properties_after_update=($output)
+
+    all_without_last_image=true
+    for property in ${properties_after_update[*]}
+    do
+      if [[ $property == *last-image* ]]
+      then
+        all_without_last_image=false
+      fi
+    done
+
+    if [ "$all_without_last_image" = true ]
+    then
+      break
+    fi
+  done
+}
+
+set_xfce_backdrop $(pwd)/wallpaper.png
 
 echo ""

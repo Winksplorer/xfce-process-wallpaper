@@ -1,5 +1,5 @@
-sh updateWallpaper.sh
-sh setWallpaper.sh
+bash updateWallpaper.sh
+bash setWallpaper.sh
 
 echo "Setup complete"
-echo "If something went wrong, raise an issue at https://github.com/anirudhajith/process-wallpaper/issues"
+echo "If something went wrong, raise an issue at https://github.com/Winksplorer/xfce-process-wallpaper/issues"
