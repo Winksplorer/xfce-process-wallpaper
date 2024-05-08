@@ -1,4 +1,4 @@
-# process-wallpaper
+# xfce-process-wallpaper
 
 Python and shell scripts which set your XFCE wallpaper to a wordcloud of the most resource-intensive processes presently running.
 
